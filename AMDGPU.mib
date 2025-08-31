@@ -1,0 +1,168 @@
+AMDGPU-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    OBJECT-TYPE, MODULE-IDENTITY,
+    enterprises, Unsigned32, Counter64
+    FROM SNMPv2-SMI
+
+    TEXTUAL-CONVENTION, DisplayString, TruthValue
+    FROM SNMPv2-TC;
+
+Thousand ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "d-3"
+    STATUS       current
+    DESCRIPTION  "Scaled by 1000."
+    SYNTAX       Integer32
+
+doubleagentx MODULE-IDENTITY
+    LAST-UPDATED "202508241642Z"
+    ORGANIZATION "Double AgentX"
+    CONTACT-INFO
+        "This mib is maintained by doubleagentx"
+    DESCRIPTION "Provide status values to monitor AMDGPU."
+    ::= { enterprises 3334444 }
+
+amdgpu OBJECT-TYPE
+    SYNTAX SEQUENCE OF amdgpuEntry
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION "AMDGPU information."
+    ::= { doubleagentx 1 }
+
+amdgpuMeta OBJECT-TYPE
+    SYNTAX amdgpuMeta
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION "Meta-information on AMDGPU."
+    ::= { amdgpu 1 }
+
+amdgpuMeta ::= SEQUENCE {
+    ModuleVersion DisplayString
+    UtilsVersion DisplayString
+}
+
+ModuleVersion OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "Version of the loaded kernel module"
+    ::= { amdgpuMeta 1 }
+
+UtilsVersion OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "Version of amdgpu-utils"
+    ::= { amdgpuMeta 2 }
+
+amdgpuTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF amdgpuEntry
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "An table containing AMDGPU devices and its statistics."
+    INDEX { amdgpuMinor }
+    ::= { amdgpu 2 }
+
+amdgpuEntry OBJECT-TYPE
+    SYNTAX amdgpuEntry
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "An entry containing a AMDGPU device and its statistics."
+    INDEX { amdgpuMinor }
+    ::= { amdgpuTable 1 }
+
+amdgpuEntry ::= SEQUENCE {
+    Minor INTEGER
+    DeviceName DisplayString
+    DeviceId DisplayString
+    DeviceRev DisplayString
+    SubsystemId DisplayString
+    GUID DisplayString
+    UniqueId DisplayString
+    VbiosVersion DisplayString
+    TemperatureSensorEdge Thousand
+    TemperatureSensorJunction Thousand
+    TemperatureSensorMemory Thousand
+}
+
+Minor OBJECT-TYPE
+    SYNTAX INTEGER
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "The AMDGPU minor number"
+    ::= { amdgpuEntry 1 }
+
+DeviceName OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "Name of the Resource the minor belongs to"
+    ::= { amdgpuEntry 2 }
+
+DeviceId OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "ID of the device"
+    ::= { amdgpuEntry 3 }
+
+DeviceRev OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "Revision of the device"
+    ::= { amdgpuEntry 4 }
+
+SubsystemId OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "Subsystem ID of the device"
+    ::= { amdgpuEntry 5 }
+
+GUID OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "GUID of the device"
+    ::= { amdgpuEntry 6 }
+
+UniqueId OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "Unique ID of the device"
+    ::= { amdgpuEntry 7 }
+
+VbiosVersion OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "The promotion score of a resource"
+    ::= { amdgpuEntry 8 }
+
+TemperatureSensorEdge OBJECT-TYPE
+    SYNTAX Thousand
+    UNITS "C"
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION "Temperature of the device at the edge"
+    ::= { amdgpuEntry 9 }
+
+TemperatureSensorJunction OBJECT-TYPE
+    SYNTAX Thousand
+    UNITS "C"
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "Temperature of the device at the junction"
+    ::= { amdgpuEntry 10 }
+
+TemperatureSensorMemory OBJECT-TYPE
+    SYNTAX Thousand
+    UNITS "C"
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "Temperature of the device at the memory"
+    ::= { amdgpuEntry 11 }
+
+END
