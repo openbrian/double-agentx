@@ -6,9 +6,17 @@ use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
-    // pub commands: Vec<String>,
+    pub metrics: Vec<Metric>,
     pub connection: Connection,
     pub oid_base: Vec<u32>,
+}
+
+
+#[derive(Clone, Deserialize, Debug)]
+pub struct Metric {
+    pub command: String,
+    pub name: String,
+    pub relative_oid: Vec<u32>,
 }
 
 

@@ -116,6 +116,15 @@ cp config.yaml ~/.config/double-agentx/
 Find the new binary in `target/release/double-agentx` and copy it to wherever you want.
 
 
+# Use
+
+```shell
+snmpwalk -v2c -c public 192.168.1.1 1.3.6.1.4.1.<pen>
+snmpwalk -v3 -u some_user -l authPriv -a SHA-256 -A pw -x AES-128 -X pw localhost 1.3.6.1.4.1.<pen>
+```
+
+
+
 # Systemd
 
 Systemd runs at the user-level.

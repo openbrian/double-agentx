@@ -14,14 +14,15 @@ use anyhow::{Result};
 use clap::Parser;
 use log::{debug, warn};
 
-use config::{load_config};
+use config::{Config, load_config};
 use metrics::{Metrics};
 use net::{rx, tx, txrx};
 
 
-pub fn run(socket_file: &String, agent_timeout: u64, oid_base: &[u32]) -> Result<()> {
+pub fn run(config: &Config) -> Result<()> {
     loop {
         // Connect or reconnect.
+        let socket_file = &config.connection.socket;
         println!("Connecting to snmp daemon on socket {}", socket_file);
         let mut stream = match UnixStream::connect(socket_file) {
             Ok(s) => s,
@@ -33,10 +34,7 @@ pub fn run(socket_file: &String, agent_timeout: u64, oid_base: &[u32]) -> Result
         };
         println!("Connected to snmp daemon on socket {}", socket_file);
 
-        if let Err(e) = listen(
-            &mut stream, &Metrics::new(),
-            Duration::from_secs(agent_timeout), oid_base,
-        ) {
+        if let Err(e) = listen(config, &mut stream) {
             println!("Error while listening: '{}'", e);
         }
         println!("connection broke");
@@ -44,22 +42,22 @@ pub fn run(socket_file: &String, agent_timeout: u64, oid_base: &[u32]) -> Result
 }
 
 
-fn listen(
-    stream: &mut UnixStream,
-    metrics: &Metrics,
-    agent_timeout: Duration,
-    oid_base: &[u32],
-) -> Result<()> {
+fn listen(config: &Config, stream: &mut UnixStream) -> Result<()> {
+    let oid_base = &config.oid_base;
     let agent_id = encodings::ID::try_from(oid_base.to_owned())
         .expect("OID prefix is valid");
+    let agent_timeout = Duration::from_secs(config.connection.agent_timeout_seconds);
     let session_id = create_session(stream, agent_timeout, &agent_id)?;
     register_agent(stream, agent_id, session_id)?;
+    // TODO: Pick the right metric based on the oid.
+    let metric_config = config.metrics.get(0).unwrap();
+    let metrics = &Metrics::new(oid_base, metric_config);
     // For each request, send a response.
     loop {
         let (typ, bytes) = rx(stream)?;
         debug!("got request '{:?}'", typ);
         let mut resp = match typ {
-            pdu::Type::Get => get(&bytes, metrics, oid_base)?,
+            pdu::Type::Get => get(&bytes, metrics)?,
             pdu::Type::GetNext => get_next(&bytes, metrics)?,
             _ => {
                 warn!("listen: header.ty={:?} unknown", typ);
@@ -92,10 +90,10 @@ fn register_agent(stream: &mut UnixStream, agent_id: ID, session_id: u32) -> Res
 }
 
 
-fn get(bytes: &[u8], metrics: &Metrics, oid_base: &[u32]) -> Result<pdu::Response> {
+fn get(bytes: &[u8], metrics: &Metrics) -> Result<pdu::Response> {
     let pkg = pdu::Get::from_bytes(bytes)?;
     let mut resp = pdu::Response::from_header(&pkg.header);
-    let vbl = metrics.get(&pkg.sr, oid_base);
+    let vbl = metrics.get(&pkg.sr)?;
     debug!("get: vbs: {:?}", vbl);
     resp.vb = Some(vbl);
     Ok(resp)
@@ -125,11 +123,7 @@ fn main() -> Result<()> {
     let args = Cli::parse();
     let config = load_config(&args.config_file)?;
     debug!("{:?}", config);
-    match run(
-        &config.connection.socket,
-        config.connection.agent_timeout_seconds,
-        &config.oid_base
-    ) {
+    match run(&config) {
         Ok(()) => println!("Connected successfully!"),
         Err(err) => println!("Failed to connect: {}", err),
     };

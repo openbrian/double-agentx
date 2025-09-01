@@ -3,8 +3,10 @@ use std::collections::BTreeMap;
 use std::ops::Bound;
 use std::process::Command;
 use agentx::encodings;
+use anyhow::{anyhow, Result};
 use log::debug;
 use serde::Deserialize;
+use crate::config::{Metric};
 use crate::util::{as_vec};
 
 
@@ -50,26 +52,38 @@ pub(crate) struct Metrics {
     // will be harder to get ranges.
     // TODO: Consider prepopulating this with the number of instances needed.
     // There's no need to recreate oids.
+    oid_base: Vec<u32>,
+    config: Metric,
 }
 
 
 impl Metrics {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(oid_base: &Vec<u32>, config: &Metric) -> Self {
+        debug!("Creating new Metrics");
+        debug!("oid_base: {:?}", oid_base);
+        debug!("config: {:?}", config);
         Self {
             mib: RefCell::new(BTreeMap::new()),
+            oid_base: [oid_base.to_owned(), config.relative_oid.clone()].concat(),
+            config: config.clone(),
         }
     }
 
 
-    // TODO: Replace this.
-    fn generate_mib(&self, oid_base: &[u32]) {
+    fn generate_mib(&self) -> Result<()> {
         // Currently we get all info.  Not sure if getting any specific data
         // is costly, but if so, we can break this up into showfan, showpower,
         // showtemp, etc.
-        let output = Command::new("rocm-smi")
-            .arg("--showallinfo")
-            .arg("--json")
-            .output()
+        let parts: Vec<&str> = self.config.command.split_whitespace().collect();
+        if parts.is_empty() {
+            return Err(anyhow!("Command is missing"));
+        }
+        let mut command = Command::new(parts[0]);
+        for arg in &parts[1..] {
+            command.arg(arg);
+        }
+        debug!("Running {:?}", command);
+        let output = command.output()
             .expect("failed to execute rocm-smi");
 
         if !output.status.success() {
@@ -78,16 +92,16 @@ impl Metrics {
             eprintln!("status: {}", output.status);
         }
         let stdout = String::from_utf8_lossy(&output.stdout);
-        debug!("stdout: {}", stdout);
+        // debug!("stdout: {}", stdout);
 
         let smi_data: RocmSmi = serde_json::from_str(&stdout).expect("failed to parse json");
-        debug!("{:?}", smi_data);
+        // debug!("{:?}", smi_data);
 
         let mut tree = self.mib.borrow_mut();
         tree.clear();
 
         // TODO: Given the oid_base, generate all the other oids once.
-        let meta_prefix = [oid_base.to_owned(), vec![1, 1]].concat();
+        let meta_prefix = [self.oid_base.to_owned(), vec![1]].concat();
 
         tree.insert(
             [meta_prefix.clone(), vec![1]].concat(),
@@ -98,7 +112,7 @@ impl Metrics {
             ),
         );
 
-        let resource_prefix = [oid_base.to_owned(), vec![1, 2, 1]].concat();
+        let resource_prefix = [self.oid_base.to_owned(), vec![2, 1]].concat();
 
         let instance = 1u32;
 
@@ -107,6 +121,15 @@ impl Metrics {
             [resource_prefix.clone(), vec![MIB::Minor as u32, instance]].concat(),
             encodings::Value::Integer(instance as i32),
         );
+
+        let bid = [meta_prefix.clone(), vec![MIB::DeviceName as u32, instance]].concat();
+        let joined_string = bid
+            .iter()
+            .map(|&num| num.to_string()) // Convert each u32 to a String
+            .collect::<Vec<String>>()    // Collect into a Vec<String>
+            .join(".");
+        debug!("insert bid {} value {}", joined_string, smi_data.card_0.device_name);
+
         tree.insert(
             [resource_prefix.clone(), vec![MIB::DeviceName as u32, instance]].concat(),
             encodings::Value::OctetString(
@@ -164,28 +187,29 @@ impl Metrics {
             ),
         );
 
-        let temp: f64 = smi_data.card_0.temperature_sensor_edge.parse().unwrap();
+        let temp: f64 = smi_data.card_0.temperature_sensor_edge.parse()?;
         tree.insert(
             [resource_prefix.clone(), vec![MIB::TemperatureSensorEdge as u32, instance]].concat(),
             encodings::Value::Integer((temp * 1000.0) as i32),
         );
 
-        let temp: f64 = smi_data.card_0.temperature_sensor_junction.parse().unwrap();
+        let temp: f64 = smi_data.card_0.temperature_sensor_junction.parse()?;
         tree.insert(
             [resource_prefix.clone(), vec![MIB::TemperatureSensorJunction as u32, instance]].concat(),
             encodings::Value::Integer((temp * 1000.0) as i32),
         );
 
-        let temp: f64 = smi_data.card_0.temperature_sensor_memory.parse().unwrap();
+        let temp: f64 = smi_data.card_0.temperature_sensor_memory.parse()?;
         tree.insert(
             [resource_prefix.clone(), vec![MIB::TemperatureSensorMemory as u32, instance]].concat(),
             encodings::Value::Integer((temp * 1000.0) as i32),
         );
+        Ok(())
     }
 
 
-    pub(crate) fn get(&self, search_range: &encodings::SearchRangeList, oid_base: &[u32]) -> encodings::VarBindList {
-        self.generate_mib(oid_base);
+    pub(crate) fn get(&self, search_range: &encodings::SearchRangeList) -> Result<encodings::VarBindList> {
+        self.generate_mib()?;
         let mut vbs = Vec::new();
 
         for search_item in search_range {
@@ -198,7 +222,7 @@ impl Metrics {
 
             vbs.push(encodings::VarBind::new(name, value));
         }
-        encodings::VarBindList(vbs)
+        Ok(encodings::VarBindList(vbs))
     }
 
 
