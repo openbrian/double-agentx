@@ -23,9 +23,15 @@ on a declarative config file.
 
 ```mermaid
 graph TD;
+    subgraph server
+        snmp-agent
+        double-agentx
+        json-command
+        snmp-agent --> double-agentx
+        double-agentx --> json-command
+    end
+
     snmp-manager --> snmp-agent
-    snmp-agent --> agentx
-    agentx --> json-command
 ```
 
 The snmp-manager is an app like Zabbix.  The SNMP Agent runs on each host.  For
