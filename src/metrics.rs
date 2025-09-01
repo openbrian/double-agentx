@@ -122,14 +122,6 @@ impl Metrics {
             encodings::Value::Integer(instance as i32),
         );
 
-        let bid = [meta_prefix.clone(), vec![MIB::DeviceName as u32, instance]].concat();
-        let joined_string = bid
-            .iter()
-            .map(|&num| num.to_string()) // Convert each u32 to a String
-            .collect::<Vec<String>>()    // Collect into a Vec<String>
-            .join(".");
-        debug!("insert bid {} value {}", joined_string, smi_data.card_0.device_name);
-
         tree.insert(
             [resource_prefix.clone(), vec![MIB::DeviceName as u32, instance]].concat(),
             encodings::Value::OctetString(
