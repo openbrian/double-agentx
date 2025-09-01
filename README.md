@@ -80,6 +80,8 @@ agentxperms 770 770 <username> <groupname>
 The system-level agentx socket is `/var/agentx/master`.  Maybe a better place 
 for a user-level socket is in `~/.local/double-agentx/`.
 
+Reference http://www.net-snmp.org/wiki/index.php/FAQ:Agent_12
+
 Confirm the MIB file has the right structure.
 
 ```shell
