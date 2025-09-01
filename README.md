@@ -1,4 +1,4 @@
-# AgentX JSON
+# Double AgentX
 
 Net-SNMP has a plugin architecture that facilitates adding OIDs to monitor to
 the system level SNMP Agent.  There are a few ways to extend the agent, but one
@@ -74,12 +74,12 @@ Run these commands.
 
 ```shell
 cargo build --release
-mkdir -p ~/.config/agentx-json/
-cp target/release/agentx-json ~/.config/agentx-json/
-cp config.yaml ~/.config/agentx-json/
+mkdir -p ~/.config/double-agentx/
+cp target/release/double-agentx ~/.config/double-agentx/
+cp config.yaml ~/.config/double-agentx/
 ```
 
-Find the new binary in `target/release/agentx-json` and copy it to wherever you want.
+Find the new binary in `target/release/double-agentx` and copy it to wherever you want.
 
 
 # Systemd
@@ -87,11 +87,11 @@ Find the new binary in `target/release/agentx-json` and copy it to wherever you 
 After copying the service file and config file into place, customize them. 
 
 ```shell
-cp agentx-json.service ~/.config/systemd/user/
-cp config.yaml ~/.config/agentx-json/
+cp double-agentx.service ~/.config/systemd/user/
+cp config.yaml ~/.config/double-agentx/
 systemctl daemon-reload
-systemctl enable --user agentx-json.service
-systemctl start --user agentx-json.service
+systemctl enable --user double-agentx.service
+systemctl start --user double-agentx.service
 ```
 
 Monitor logs
