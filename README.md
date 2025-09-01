@@ -134,6 +134,11 @@ Monitor logs
 journalctl --user -fu double-agentx
 ```
 
+# Reference
+
+* https://net-snmp.sourceforge.io/wiki/index.php/TUT:Writing_a_Subagent
+
+
 # Acknowledgements
 
 Thanks to LINBIT for creating the [agentx rust crate](https://crates.io/crates/agentx) and sharing a 
