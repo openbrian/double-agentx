@@ -19,10 +19,28 @@ scale factor.
 Currently, reads rocm-smi output, but the intent it to read any JSON based 
 on a declarative config file.
 
+# Architecture
+
+```mermaid
+graph TD;
+    snmp-manager --> snmp-agent
+    snmp-agent --> agentx
+    agentx --> json-command
+```
+
+The snmp-manager is an app like Zabbix.  The SNMP Agent runs on each host.  For
+a typical linux host this would be NET-SNMP.
+
+Instead of writing a full-blown SNMP Agent for each thing you want to monitor,
+Net-SNMP has a plugin architecture.  Net-SNMP creates a unix socket (or TCP 
+port) and listens for connections there.  This subagent reads and writes to
+that socket.
+
 # Build
 
 ```shell
 cargo build
+cargo clippy
 ```
 
 
@@ -33,21 +51,14 @@ Could use some help with setting up unit tests.
 
 # Run
 
-Customize the config and run locally
-
-```
-cp template/config.yaml .
-cargo run
-```
-
-Find the agentx socket file in /var, likely /var/agentx/master.
-
-
-# Deploy
+You could run this with a standalone SNMP Agent (NET-SNMP) or you can use the
+sytem-wide instance.  Set up your agent like this.
 
 ## Set up SNMPd
 
-Add this to SNMPd's config /etc/snmp/snmpd.conf.
+Add this to SNMPd's config /etc/snmp/snmpd.conf.  PEN is the private enterprise
+number.  Request one [here](https://www.iana.org/assignments/enterprise-numbers/).
+You can create the socket file to be used by yourself or the system.
 
 ```
 # Add your OID to the system view
@@ -60,9 +71,8 @@ agentxsocket /tmp/agentx
 agentxperms 770 770 <username> <groupname>
 ```
 
-Load the MIB file.
-
-TODO
+The system-level agentx socket is `/var/agentx/master`.  Maybe a better place 
+for a user-level socket is in `~/.local/double-agentx/`.
 
 Confirm the MIB file has the right structure.
 
@@ -70,7 +80,23 @@ Confirm the MIB file has the right structure.
 snmptranslate -M.:/usr/share/snmp/mibs/ietf -Tp AMDGPU-MIB::doubleagentx
 ```
 
-Run these commands.
+Load the MIB file.
+
+TODO
+
+
+## Set up the app
+
+Customize the config and run locally
+
+```
+cp template/config.yaml .
+RUST_LOG=debug cargo run
+```
+
+# Deploy
+
+Run these commands and customize files.
 
 ```shell
 cargo build --release
@@ -84,11 +110,13 @@ Find the new binary in `target/release/double-agentx` and copy it to wherever yo
 
 # Systemd
 
+Systemd runs at the user-level.
+
 After copying the service file and config file into place, customize them. 
 
 ```shell
-cp double-agentx.service ~/.config/systemd/user/
-cp config.yaml ~/.config/double-agentx/
+cp template/double-agentx.service ~/.config/systemd/user/
+cp template/config.yaml ~/.config/double-agentx/
 systemctl daemon-reload
 systemctl enable --user double-agentx.service
 systemctl start --user double-agentx.service
@@ -97,7 +125,7 @@ systemctl start --user double-agentx.service
 Monitor logs
 
 ```shell
-journalctl --user -fu agentx
+journalctl --user -fu double-agentx
 ```
 
 # Acknowledgements

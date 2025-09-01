@@ -1,0 +1,12 @@
+[Unit]
+Description=Double AgentX
+After=network-online.target
+
+[Service]
+ExecStart=/home/<username>/.local/double-agentx/double-agentx
+#WorkingDirectory=/path/to/your/rust/app/
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
