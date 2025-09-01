@@ -88,7 +88,7 @@ snmptranslate -M.:/usr/share/snmp/mibs/ietf -Tp AMDGPU-MIB::doubleagentx
 
 Load the MIB file.
 
-TODO
+Copy the MIB file to `/usr/local/share/snmp/mibs/`.  Restart snmpd.
 
 
 ## Set up the app
