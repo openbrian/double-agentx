@@ -27,8 +27,8 @@ graph TD;
         snmp-agent
         double-agentx
         json-command
-        snmp-agent --> double-agentx
-        double-agentx --> json-command
+        snmp-agent --socket--> double-agentx
+        double-agentx --exec--> json-command
     end
 
     snmp-manager --> snmp-agent
