@@ -137,6 +137,9 @@ journalctl --user -fu double-agentx
 # Reference
 
 * https://net-snmp.sourceforge.io/wiki/index.php/TUT:Writing_a_Subagent
+* https://github.com/LINBIT/drbd-reactor/blob/master/doc/agentx.md
+* https://docs.rs/agentx/latest/agentx/
+* https://www.oreilly.com/library/view/essential-snmp-2nd/0596008406/
 
 
 # Acknowledgements
