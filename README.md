@@ -6,7 +6,7 @@ of the easiest ways is to use the AgentX subagent.
 
 Often written in C, this subagent is written in Rust.
 
-AgentX Anything JSON is a Net-SNMP AgentX subagent that reads JSON data from any 
+Double AgentX is a Net-SNMP AgentX subagent that reads JSON data from any 
 JSON source and maps elements in the JSON to OIDs.  This includes using data
 types for the OID.
 
