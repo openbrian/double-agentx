@@ -2,6 +2,7 @@ mod net;
 mod util;
 mod metrics;
 mod config;
+mod entry;
 
 use std::convert::TryFrom;
 use std::os::unix::net::UnixStream;
@@ -12,7 +13,7 @@ use agentx::encodings::ID;
 use agentx::pdu;
 use anyhow::{Result};
 use clap::Parser;
-use log::{debug, warn};
+use log::{debug, info, warn};
 
 use config::{Config, load_config};
 use metrics::{Metrics};
@@ -55,7 +56,7 @@ fn listen(config: &Config, stream: &mut UnixStream) -> Result<()> {
     // For each request, send a response.
     loop {
         let (typ, bytes) = rx(stream)?;
-        debug!("got request '{:?}'", typ);
+        info!("got request '{:?}'", typ);
         let mut resp = match typ {
             pdu::Type::Get => get(&bytes, metrics)?,
             pdu::Type::GetNext => get_next(&bytes, metrics)?,
@@ -94,7 +95,7 @@ fn get(bytes: &[u8], metrics: &Metrics) -> Result<pdu::Response> {
     let pkg = pdu::Get::from_bytes(bytes)?;
     let mut resp = pdu::Response::from_header(&pkg.header);
     let vbl = metrics.get(&pkg.sr)?;
-    debug!("get: vbs: {:?}", vbl);
+    info!("get: vbs: {:?}", vbl);
     resp.vb = Some(vbl);
     Ok(resp)
 }
@@ -104,7 +105,7 @@ fn get_next(bytes: &[u8], metrics: &Metrics) -> Result<pdu::Response> {
     let pkg = pdu::GetNext::from_bytes(bytes)?;
     let mut resp = pdu::Response::from_header(&pkg.header);
     let vbl = metrics.get_next(&pkg.sr);
-    debug!("get_next: vbs: {:?}", vbl);
+    info!("get_next: vbs: {:?}", vbl);
     resp.vb = Some(vbl);
     Ok(resp)
 }

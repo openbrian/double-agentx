@@ -4,45 +4,13 @@ use std::ops::Bound;
 use std::process::Command;
 use agentx::encodings;
 use anyhow::{anyhow, Result};
-use log::debug;
-use serde::Deserialize;
+use log::{debug, info};
+use serde_json::Value;
 use crate::config::{Metric};
+use crate::entry::{Entry, RecursiveIterator};
 use crate::util::{as_vec};
 
-
-
-#[derive(Deserialize, Debug)]
-struct CardData {
-    #[serde(rename = "Device Name")]
-    pub device_name: String,
-    #[serde(rename = "Device ID")]
-    pub device_id: String,
-    #[serde(rename = "Device Rev")]
-    pub device_rev: String,
-    #[serde(rename = "Subsystem ID")]
-    pub subsystem_id: String,
-    #[serde(rename = "GUID")]
-    pub guid: String,
-    #[serde(rename = "Unique ID")]
-    pub unique_id: String,
-    #[serde(rename = "VBIOS version")]
-    pub vbios_version: String,
-    #[serde(rename = "Temperature (Sensor edge) (C)")]
-    pub temperature_sensor_edge: String,  // yes it's a string
-    #[serde(rename = "Temperature (Sensor junction) (C)")]
-    pub temperature_sensor_junction: String,
-    #[serde(rename = "Temperature (Sensor memory) (C)")]
-    pub temperature_sensor_memory: String,
-}
-
-
-#[derive(Deserialize, Debug)]
-struct RocmSmi {
-    #[serde(rename = "card0")]
-    card_0: CardData,
-    // This is not used yet.
-    // system: HashMap<String, String>,
-}
+extern crate jsonpath_lib as jsonpath;
 
 
 pub(crate) struct Metrics {
@@ -52,7 +20,7 @@ pub(crate) struct Metrics {
     // will be harder to get ranges.
     // TODO: Consider prepopulating this with the number of instances needed.
     // There's no need to recreate oids.
-    oid_base: Vec<u32>,
+    // oid_base: Vec<u32>,
     config: Metric,
 }
 
@@ -64,7 +32,7 @@ impl Metrics {
         debug!("config: {:?}", config);
         Self {
             mib: RefCell::new(BTreeMap::new()),
-            oid_base: [oid_base.to_owned(), config.relative_oid.clone()].concat(),
+            // oid_base: [oid_base.to_owned(), config.relative_oid.clone()].concat(),
             config: config.clone(),
         }
     }
@@ -74,130 +42,70 @@ impl Metrics {
         // Currently we get all info.  Not sure if getting any specific data
         // is costly, but if so, we can break this up into showfan, showpower,
         // showtemp, etc.
-        let parts: Vec<&str> = self.config.command.split_whitespace().collect();
-        if parts.is_empty() {
-            return Err(anyhow!("Command is missing"));
-        }
-        let mut command = Command::new(parts[0]);
-        for arg in &parts[1..] {
-            command.arg(arg);
-        }
-        debug!("Running {:?}", command);
-        let output = command.output()
-            .expect("failed to execute rocm-smi");
 
-        if !output.status.success() {
-            eprintln!("stdout: {}", String::from_utf8_lossy(&output.stdout));
-            eprintln!("stderr: {}", String::from_utf8_lossy(&output.stderr));
-            eprintln!("status: {}", output.status);
-        }
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        // debug!("stdout: {}", stdout);
-
-        let smi_data: RocmSmi = serde_json::from_str(&stdout).expect("failed to parse json");
-        // debug!("{:?}", smi_data);
+        let stdout = run_command(&self.config.command)?;
+        let data= serde_json::from_str(&stdout)
+            .expect("failed to parse json");
+        let mut selector = jsonpath::selector(&data);
 
         let mut tree = self.mib.borrow_mut();
         tree.clear();
 
-        // TODO: Given the oid_base, generate all the other oids once.
-        let meta_prefix = [self.oid_base.to_owned(), vec![1]].concat();
-
-        tree.insert(
-            [meta_prefix.clone(), vec![1]].concat(),
-            encodings::Value::OctetString(
-                encodings::OctetString(
-                    "1.0".to_string(),
-                )
-            ),
-        );
-
-        let resource_prefix = [self.oid_base.to_owned(), vec![2, 1]].concat();
-
-        let instance = 1u32;
-
-        // Identify the instance we have here.
-        tree.insert(
-            [resource_prefix.clone(), vec![MIB::Minor as u32, instance]].concat(),
-            encodings::Value::Integer(instance as i32),
-        );
-
-        tree.insert(
-            [resource_prefix.clone(), vec![MIB::DeviceName as u32, instance]].concat(),
-            encodings::Value::OctetString(
-                encodings::OctetString(
-                    smi_data.card_0.device_name.to_string(),
-                )
-            ),
-        );
-        tree.insert(
-            [resource_prefix.clone(), vec![MIB::DeviceId as u32, instance]].concat(),
-            encodings::Value::OctetString(
-                encodings::OctetString(
-                    smi_data.card_0.device_id.to_string(),
-                )
-            ),
-        );
-        tree.insert(
-            [resource_prefix.clone(), vec![MIB::DeviceRev as u32, instance]].concat(),
-            encodings::Value::OctetString(
-                encodings::OctetString(
-                    smi_data.card_0.device_rev.to_string(),
-                )
-            ),
-        );
-        tree.insert(
-            [resource_prefix.clone(), vec![MIB::SubsystemId as u32, instance]].concat(),
-            encodings::Value::OctetString(
-                encodings::OctetString(
-                    smi_data.card_0.subsystem_id.to_string(),
-                )
-            ),
-        );
-        tree.insert(
-            [resource_prefix.clone(), vec![MIB::GUID as u32, instance]].concat(),
-            encodings::Value::OctetString(
-                encodings::OctetString(
-                    smi_data.card_0.guid.to_string(),
-                )
-            ),
-        );
-        tree.insert(
-            [resource_prefix.clone(), vec![MIB::UniqueId as u32, instance]].concat(),
-            encodings::Value::OctetString(
-                encodings::OctetString(
-                    smi_data.card_0.unique_id.to_string(),
-                )
-            ),
-        );
-        tree.insert(
-            [resource_prefix.clone(), vec![MIB::VbiosVersion as u32, instance]].concat(),
-            encodings::Value::OctetString(
-                encodings::OctetString(
-                    smi_data.card_0.vbios_version.to_string(),
-                )
-            ),
-        );
-
-        let temp: f64 = smi_data.card_0.temperature_sensor_edge.parse()?;
-        tree.insert(
-            [resource_prefix.clone(), vec![MIB::TemperatureSensorEdge as u32, instance]].concat(),
-            encodings::Value::Integer((temp * 1000.0) as i32),
-        );
-
-        let temp: f64 = smi_data.card_0.temperature_sensor_junction.parse()?;
-        tree.insert(
-            [resource_prefix.clone(), vec![MIB::TemperatureSensorJunction as u32, instance]].concat(),
-            encodings::Value::Integer((temp * 1000.0) as i32),
-        );
-
-        let temp: f64 = smi_data.card_0.temperature_sensor_memory.parse()?;
-        tree.insert(
-            [resource_prefix.clone(), vec![MIB::TemperatureSensorMemory as u32, instance]].concat(),
-            encodings::Value::Integer((temp * 1000.0) as i32),
-        );
+        // Walk through config mibs.
+        let mut iterator = RecursiveIterator::new(&self.config.mibs);
+        while let Some(obj) = iterator.next() {
+            let value: Option<encodings::Value> = match detect_handler(&obj) {
+                Handler::Literal(literal) => {
+                    Some(encodings::Value::OctetString(
+                        encodings::OctetString(literal)
+                    ))
+                },
+                Handler::Json(path) => {
+                    debug!("path: {:?}", path);
+                    let values = selector(&path)?;
+                    if let Some(value) = values.first() {
+                        match value {
+                            Value::String(s) => {
+                                let mut val = MibType::String(s.clone());
+                                if let Some(converter) = &obj.convert {
+                                    val = convert(val, converter)?;
+                                }
+                                match val {
+                                    MibType::Integer(i) => {
+                                        Some(encodings::Value::Integer(i as i32))
+                                    },
+                                    MibType::String(s) => {
+                                        Some(encodings::Value::OctetString(
+                                            encodings::OctetString(s)
+                                        ))
+                                    },
+                                    _ => {
+                                        return Err(anyhow!("No data type handler for {:?}", value));
+                                    }
+                                }
+                            },
+                            _ => {
+                                return Err(anyhow!("No data type handler for {:?}", value));
+                            }
+                        }
+                    } else {
+                        return Err(anyhow!("No data for {:?}", path));
+                    }
+                },
+                _ => {
+                    debug!("No handler for {:?}", obj);
+                    None
+                },
+            };
+            if let Some(value) = value {
+                let oid = [obj.oid.clone(), vec![1]].concat();
+                debug!("insert {:?} is {:?}", oid, value);
+                tree.insert(oid, value);
+            }
+        }
         Ok(())
     }
+
 
 
     pub(crate) fn get(&self, search_range: &encodings::SearchRangeList) -> Result<encodings::VarBindList> {
@@ -223,8 +131,8 @@ impl Metrics {
         let tree = self.mib.borrow();
 
         for range in search_range {
-            debug!("get_next: start: {:?}", range.start); // 1.3.6.1.4.1.pen
-            debug!("get_next: end: {:?}", range.end); // 1.3.6.1.4.1.(pen + 1)
+            info!("get_next: start: {:?}", range.start); // 1.3.6.1.4.1.pen
+            info!("get_next: end: {:?}", range.end); // 1.3.6.1.4.1.(pen + 1)
 
             let bounded = match range.start.include {
                 0 => Bound::Excluded,
@@ -251,18 +159,121 @@ impl Metrics {
 }
 
 
-#[allow(clippy::upper_case_acronyms)]
-enum MIB {
-    Minor = 1,
+fn run_command(command: &String) -> Result<String> {
+    let parts: Vec<&str> = command.split_whitespace().collect();
+    if parts.is_empty() {
+        return Err(anyhow!("Command is missing"));
+    }
+    let mut command = Command::new(parts[0]);
+    for arg in &parts[1..] {
+        command.arg(arg);
+    }
+    debug!("Running {:?}", command);
+    let output = command.output()
+        .expect("failed to execute rocm-smi");
 
-    DeviceName,
-    DeviceId,
-    DeviceRev,
-    SubsystemId,
-    GUID,
-    UniqueId,
-    VbiosVersion,
-    TemperatureSensorEdge,
-    TemperatureSensorJunction,
-    TemperatureSensorMemory,
+    if !output.status.success() {
+        eprintln!("stdout: {}", String::from_utf8_lossy(&output.stdout));
+        eprintln!("stderr: {}", String::from_utf8_lossy(&output.stderr));
+        eprintln!("status: {}", output.status);
+    }
+    let stdout = String::from_utf8(output.stdout)?;
+    debug!("stdout: {}", stdout);
+    Ok(stdout)
+}
+
+
+enum Handler {
+    Literal(String),
+    Json(String),
+    None,
+}
+
+
+fn detect_handler(entry: &Entry) -> Handler {
+    if let Some(l) = &entry.literal {
+        Handler::Literal(l.clone())
+    } else if let Some(j) = &entry.json_path {
+        Handler::Json(j.clone())
+    } else {
+        Handler::None
+    }
+}
+
+fn convert(val: MibType, converter: &str) -> Result<MibType> {
+    debug!("converter: {:?}", converter);
+    debug!("val: {:?}", val);
+    let converters: Vec<&str> = converter
+        .split(',')
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+        .collect();
+    let mut current: MibType = val;
+    for converter in converters {
+        debug!("converter: {:?}", converter);
+        current = match converter {
+            "cast_float" => {
+                match &current {
+                    MibType::Float(_) => current, // ignore converter
+                    MibType::Integer(i) => MibType::Float(*i as f32),
+                    MibType::String(s) => MibType::Float(s.parse()?)
+                }
+            },
+            "cast_int" => {
+                match &current {
+                    MibType::Float(f) => MibType::Integer(f.round() as u32),
+                    MibType::Integer(_) => current,  // ignore converter
+                    MibType::String(s) => MibType::Integer(s.parse()?)
+                }
+            },
+            _ if converter.starts_with("multiply_by") => {
+                let c_length = converter.len();
+                let factor = (&converter[12..c_length-1]).parse::<f32>()?;
+                match &current {
+                    MibType::Float(f) => MibType::Float(f * factor),
+                    MibType::Integer(i) => MibType::Float(*i as f32 * factor),
+                    MibType::String(_) => current, // ignore converter
+                }
+            },
+            _ if converter.starts_with("trim_right") => {
+                match &current {
+                    MibType::Float(_) => current, // ignore converter
+                    MibType::Integer(_) => current, // ignore converter
+                    MibType::String(s) => {
+                        let c_length = converter.len();
+                        let n = (&converter[11..c_length-1]).parse::<usize>()?;
+                        let s_length = s.len();
+                        let s2 = &s[0..s_length-n];
+                        MibType::String(s2.to_string())
+                    }
+                }
+            },
+            _ if converter.starts_with("trim") => {
+                match &current {
+                    MibType::Float(_) => current, // ignore converter
+                    MibType::Integer(_) => current, // ignore converter
+                    MibType::String(s) => {
+                        let c_length = converter.len();
+                        let n = (&converter[5..c_length-1]).parse::<usize>()?;
+                        let s_length = s.len();
+                        let s2 = &s[n..s_length-n];
+                        MibType::String(s2.to_string())
+                    }
+                }
+            },
+            _ => {
+                return Err(anyhow!("Unknown converter: {}", converter));
+            }
+        };
+        debug!("current: {:?}", current);
+    }
+    Ok(current)
+}
+
+
+#[derive(Debug)]
+enum MibType {
+    Float(f32),
+    Integer(u32),
+    String(String),
 }

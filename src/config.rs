@@ -1,7 +1,9 @@
+use std::collections::HashMap;
 use anyhow::{Context, Result};
 use log::{debug};
 use std::fs::read_to_string;
 use serde::Deserialize;
+use crate::entry::Entry;
 
 
 #[derive(Deserialize, Debug)]
@@ -15,6 +17,7 @@ pub struct Config {
 #[derive(Clone, Deserialize, Debug)]
 pub struct Metric {
     pub command: String,
+    pub mibs: HashMap<u32, Entry>,
     pub name: String,
     pub relative_oid: Vec<u32>,
 }

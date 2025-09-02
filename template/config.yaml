@@ -7,11 +7,206 @@ metrics:
     name: ROCM SMI
     relative_oid: [1]
     # todo: handle instances
-#    mibs:
-#      - mib: 1.3.6.1.4.1.pen.2.1
-#        json_path: $.card0["Device Name"]
-#        data_type: string
-#      - mib: 1.3.6.1.4.1.pen.5.1
-#        json_path: $.card0["Temperature (Sensor edge) (C)"]
-#        data_type: integer
-#        convert: multiply_by_1000
+    mibs:
+      1:
+        name: amdgpu
+        oid: [1, 3, 6, 1, 4, 1, 3334444, 1]
+        type: sequence
+        children:
+          1:
+            name: amdgpuMeta
+            oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 1]
+            children:
+              1:
+                name: ModuleVersion
+                oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 1, 1]
+                handler: json
+                data_type: string
+                json_path: $.system["Driver version"]
+              2:
+                name: UtilsVersion
+                oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 1, 2]
+                data_type: string
+                literal: 7.5.0
+          2:
+            name: amdgpuTable
+            oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2]
+            type: sequence
+            children:
+              1:
+                name: amdgpuEntry
+                oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1]
+                index: instances
+                expected_instances: 1
+                children:
+                  1:
+                    name: InstanceNumber
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 1]
+                    data_type: integer
+                    json_path: $.card0["Node ID"]
+                  2:
+                    name: DeviceName
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 2]
+                    data_type: string
+                    json_path: $.card0["Device Name"]
+                  3:
+                    name: DeviceId
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 3]
+                    data_type: string
+                    json_path: $.card0["Device ID"]
+                  4:
+                    name: DeviceRev
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 4]
+                    data_type: string
+                    json_path: $.card0["Device Rev"]
+                  5:
+                    name: SubsystemId
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 5]
+                    data_type: string
+                    json_path: $.card0["Subsystem ID"]
+                  6:
+                    name: GUID
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 6]
+                    data_type: string
+                    json_path: $.card0["GUID"]
+                  7:
+                    name: UniqueId
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 7]
+                    data_type: string
+                    json_path: $.card0["Unique ID"]
+                  8:
+                    name: VbiosVersion
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 8]
+                    data_type: string
+                    json_path: $.card0["VBIOS version"]
+                  9:
+                    name: TemperatureSensorEdge
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 9]
+                    convert: cast_float, multiply_by(1000), cast_int
+                    data_type: integer
+                    json_path: $.card0["Temperature (Sensor edge) (C)"]
+                    unit: Celsius
+                  10:
+                    name: TemperatureSensorJunction
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 10]
+                    convert: cast_float, multiply_by(1000), cast_int
+                    data_type: integer
+                    json_path: $.card0["Temperature (Sensor junction) (C)"]
+                    unit: Celsius
+                  11:
+                    name: TemperatureSensorMemory
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 11]
+                    convert: cast_float, multiply_by(1000), cast_int
+                    data_type: integer
+                    json_path: $.card0["Temperature (Sensor memory) (C)"]
+                    unit: Celsius
+                  12:
+                    name: DcefclkClockSpeed
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 12]
+                    convert: trim(1),trim_right(3),cast_int
+                    data_type: integer
+                    json_path: $.card0["dcefclk clock speed:"]
+                    unit: MHz
+                  13:
+                    name: DcefclkClockLevel
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 13]
+                    convert: cast_int
+                    data_type: integer
+                    json_path: $.card0["dcefclk clock level:"]
+                  14:
+                    name: FclkClockSpeed
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 14]
+                    convert: trim(1),trim_right(3),cast_int
+                    data_type: integer
+                    json_path: $.card0["fclk clock speed:"]
+                    unit: MHz
+                  15:
+                    name: FclkClockLevel
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 15]
+                    convert: cast_int
+                    data_type: integer
+                    json_path: $.card0["fclk clock level:"]
+                  16:
+                    name: MclkClockSpeed
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 16]
+                    convert: trim(1),trim_right(3),cast_int
+                    data_type: integer
+                    json_path: $.card0["mclk clock speed:"]
+                    unit: MHz
+                  17:
+                    name: MclkClockLevel
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 17]
+                    convert: cast_int
+                    data_type: integer
+                    json_path: $.card0["mclk clock level:"]
+                  18:
+                    name: SclkClockSpeed
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 18]
+                    convert: trim(1),trim_right(3),cast_int
+                    data_type: integer
+                    json_path: $.card0["sclk clock speed:"]
+                    unit: MHz
+                  19:
+                    name: SclkClockLevel
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 19]
+                    convert: cast_int
+                    data_type: integer
+                    json_path: $.card0["sclk clock level:"]
+                  20:
+                    name: SocclkClockSpeed
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 20]
+                    convert: trim(1),trim_right(3),cast_int
+                    data_type: integer
+                    json_path: $.card0["socclk clock speed:"]
+                    unit: MHz
+                  21:
+                    name: SocclkClockLevel
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 21]
+                    convert: cast_int
+                    data_type: integer
+                    json_path: $.card0["socclk clock level:"]
+                  22:
+                    name: PcieClockLevel
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 22]
+                    data_type: string
+                    json_path: $.card0["pcie clock level"]
+                  23:
+                    name: PerformanceLevel
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 23]
+                    data_type: string
+                    json_path: $.card0["Performance Level"]
+                  24:
+                    name: MaxGraphicsPackagePower
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 24]
+                    convert: cast_float, multiply_by(1000), cast_int
+                    data_type: integer
+                    json_path: $.card0["Max Graphics Package Power (W)"]
+                    unit: Watts
+                  25:
+                    name: AverageGraphicsPackagePower
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 25]
+                    convert: cast_float, multiply_by(1000), cast_int
+                    data_type: integer
+                    json_path: $.card0["Average Graphics Package Power (W)"]
+                    unit: Watts
+                  26:
+                    name: GpuUse
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 26]
+                    convert: cast_float, multiply_by(1000), cast_int
+                    data_type: integer
+                    json_path: $.card0["GPU use (%)"]
+                    unit: percent
+                  27:
+                    name: GpuMemoryAllocated
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 27]
+                    convert: cast_float, multiply_by(1000), cast_int
+                    data_type: integer
+                    json_path: $.card0["GPU Memory Allocated (VRAM%)"]
+                    unit: percent
+                  28:
+                    name: GpuMemoryReadWriteActivity
+                    oid: [1, 3, 6, 1, 4, 1, 3334444, 1, 2, 1, 28]
+                    convert: cast_float, multiply_by(1000), cast_int
+                    data_type: integer
+                    json_path: $.card0["GPU Memory Read/Write Activity (%)"]
+                    unit: percent

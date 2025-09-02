@@ -83,6 +83,23 @@ amdgpuEntry ::= SEQUENCE {
     TemperatureSensorEdge Thousand
     TemperatureSensorJunction Thousand
     TemperatureSensorMemory Thousand
+    DcefclkClockSpeed INTEGER
+    DcefclkClockLevel INTEGER
+    FclkClockSpeed INTEGER
+    FclkClockLevel INTEGER
+    MclkClockSpeed INTEGER
+    MclkClockLevel INTEGER
+    SclkClockSpeed INTEGER
+    SclkClockLevel INTEGER
+    SocclkClockSpeed INTEGER
+    SocclkClockLevel INTEGER
+    PcieClockLevel INTEGER
+    PerformanceLevel DisplayString
+    MaxGraphicsPackagePower Thousand
+    AverageGraphicsPackagePower Thousand
+    GpuUse Thousand
+    GpuMemoryAllocated Thousand
+    GpuMemoryReadWriteActivity Thousand
 }
 
 Minor OBJECT-TYPE
@@ -164,5 +181,135 @@ TemperatureSensorMemory OBJECT-TYPE
     STATUS current
     DESCRIPTION "Temperature of the device at the memory"
     ::= { amdgpuEntry 11 }
+
+DcefclkClockSpeed OBJECT-TYPE
+    SYNTAX INTEGER
+    UNITS "MHz"
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "dcefclk clock speed"
+    ::= { amdgpuEntry 12 }
+
+DcefclkClockLevel OBJECT-TYPE
+    SYNTAX INTEGER
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "dcefclk clock level"
+    ::= { amdgpuEntry 13 }
+
+FclkClockSpeed OBJECT-TYPE
+    SYNTAX INTEGER
+    UNITS "MHz"
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "fclk clock speed"
+    ::= { amdgpuEntry 14 }
+
+FclkClockLevel OBJECT-TYPE
+    SYNTAX INTEGER
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "dcefclk clock level"
+    ::= { amdgpuEntry 15 }
+
+MclkClockSpeed OBJECT-TYPE
+    SYNTAX INTEGER
+    UNITS "MHz"
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "mclk clock speed"
+    ::= { amdgpuEntry 16 }
+
+MclkClockLevel OBJECT-TYPE
+    SYNTAX INTEGER
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "mclk clock level"
+    ::= { amdgpuEntry 17 }
+
+SclkClockSpeed OBJECT-TYPE
+    SYNTAX INTEGER
+    UNITS "MHz"
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "mclk clock speed"
+    ::= { amdgpuEntry 18 }
+
+SclkClockLevel OBJECT-TYPE
+    SYNTAX INTEGER
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "sclk clock level"
+    ::= { amdgpuEntry 19 }
+
+SocclkClockSpeed OBJECT-TYPE
+    SYNTAX INTEGER
+    UNITS "MHz"
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "mclk clock speed"
+    ::= { amdgpuEntry 20 }
+
+SocclkClockLevel OBJECT-TYPE
+    SYNTAX INTEGER
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "socclk clock level"
+    ::= { amdgpuEntry 21 }
+
+PcieClockLevel OBJECT-TYPE
+    SYNTAX INTEGER
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "pcie clock level"
+    ::= { amdgpuEntry 22 }
+
+PerformanceLevel OBJECT-TYPE
+    SYNTAX INTEGER
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "Performance Level"
+    ::= { amdgpuEntry 23 }
+
+MaxGraphicsPackagePower OBJECT-TYPE
+    SYNTAX Thousand
+    UNITS "Watts"
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "Performance Level"
+    ::= { amdgpuEntry 24 }
+
+AverageGraphicsPackagePower OBJECT-TYPE
+    SYNTAX Thousand
+    UNITS "Watts"
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "Average Graphics Package Power"
+    ::= { amdgpuEntry 25 }
+
+GpuUse OBJECT-TYPE
+    SYNTAX Thousand
+    UNITS "%"
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "GPU use"
+    ::= { amdgpuEntry 26 }
+
+GpuMemoryAllocated OBJECT-TYPE
+    SYNTAX Thousand
+    UNITS "%"
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "GPU Memory Allocated (VRAM%)"
+    ::= { amdgpuEntry 27 }
+
+GpuMemoryReadWriteActivity OBJECT-TYPE
+    SYNTAX Thousand
+    UNITS "%"
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "GPU Memory Read/Write Activity"
+    ::= { amdgpuEntry 28 }
+
 
 END
